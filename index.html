@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teka Teki Kata</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #3730a3;
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #10b981;
+            --warning: #f59e0b;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 14px; }
+        .container { width: 100%; max-width: 480px; background: var(--card-bg); border-radius: 20px; padding: 18px; box-shadow: 0 10px 25px rgba(0,0,0,0.4); display: flex; flex-direction: column; gap: 14px; }
+        .header { display: flex; justify-content: space-between; align-items: center; }
+        .title { font-size: 1.2rem; font-weight: bold; color: #818cf8; }
+        .level-badge { background: #312e81; color: #c7d2fe; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; }
+        .stats-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .stat-box { background: #334155; padding: 8px; border-radius: 12px; text-align: center; }
+        .stat-label { font-size: 0.72rem; color: var(--text-muted); }
+        .stat-value { font-size: 1rem; font-weight: bold; color: #38bdf8; }
+        .progress-wrapper { display: flex; flex-direction: column; gap: 4px; }
+        .progress-label { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); }
+        .progress-bar-container { width: 100%; background: #334155; height: 10px; border-radius: 5px; overflow: hidden; }
+        .progress-bar { height: 100%; background: linear-gradient(90deg, #10b981, #34d399); width: 5%; transition: width 0.4s ease; }
+        .target-words-box { background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; border-radius: 14px; padding: 12px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; min-height: 85px; align-items: center; }
+        .word-card { display: flex; gap: 3px; background: #1e293b; padding: 5px 8px; border-radius: 8px; border: 1px solid #475569; }
+        .word-card.found { background: #065f46; border-color: #10b981; }
+        .char-box { width: 22px; height: 26px; background: #334155; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: bold; color: transparent; }
+        .word-card.found .char-box { background: #10b981; color: #ffffff; }
+        .answer-area { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 8px 0; }
+        .current-word-display { min-height: 48px; display: flex; gap: 6px; justify-content: center; align-items: center; background: rgba(0, 0, 0, 0.25); padding: 6px 14px; border-radius: 12px; min-width: 180px; border: 1px dashed #64748b; }
+        .selected-letter { width: 36px; height: 40px; background: var(--primary); color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; font-weight: bold; cursor: pointer; box-shadow: 0 3px var(--primary-dark); }
+        .letters-pool { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin: 6px 0; }
+        .letter-btn { width: 44px; height: 44px; background: #3b82f6; color: white; border: none; border-radius: 50%; font-size: 1.2rem; font-weight: bold; cursor: pointer; box-shadow: 0 4px #1d4ed8; }
+        .letter-btn:active { transform: translateY(4px); box-shadow: 0 0 #1d4ed8; }
+        .letter-btn.used { opacity: 0.25; pointer-events: none; background: #64748b; box-shadow: none; }
+        .controls { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+        .btn { padding: 10px 4px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 0.85rem; color: white; }
+        .btn-shuffle { background: #f59e0b; } .btn-clear { background: #ef4444; } .btn-hint { background: #8b5cf6; } .btn-check { background: #10b981; }
+        .chart-section { margin-top: 6px; background: rgba(15, 23, 42, 0.5); padding: 10px; border-radius: 12px; border: 1px solid #334155; }
+        .chart-title { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 8px; text-align: center; }
+        .bar-chart { display: flex; align-items: flex-end; justify-content: space-between; height: 60px; gap: 3px; padding-top: 10px; }
+        .bar-col { flex: 1; background: #334155; border-radius: 3px 3px 0 0; height: 6px; }
+        .bar-col.active { background: #38bdf8; } .bar-col.completed { background: #10b981; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="title">Teka Teki Kata</div>
+            <div class="level-badge" id="levelIndicator">Level 1 / 20</div>
+        </div>
+        <div class="stats-container">
+            <div class="stat-box"><div class="stat-label">Total Poin</div><div class="stat-value" id="scoreDisplay">0</div></div>
+            <div class="stat-box"><div class="stat-label">Kata Ditemukan</div><div class="stat-value" id="wordsCountDisplay">0 / 3</div></div>
+            <div class="stat-box"><div class="stat-label">Info</div><div class="stat-value" id="statusDisplay">Siap</div></div>
+        </div>
+        <div class="progress-wrapper">
+            <div class="progress-label"><span>Progres Level</span><span id="progressPercent">5%</span></div>
+            <div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+        </div>
+        <div class="target-words-box" id="targetWordsBox"></div>
+        <div class="answer-area" id="gamePlayArea">
+            <div class="current-word-display" id="currentWordDisplay"><span style="color:#64748b; font-size:0.85rem;">Pilih huruf di bawah</span></div>
+            <div class="letters-pool" id="lettersPool"></div>
+        </div>
+        <div class="controls" id="controlsArea">
+            <button class="btn btn-shuffle" onclick="shufflePool()">Acak</button>
+            <button class="btn btn-clear" onclick="clearSelection()">Hapus</button>
+            <button class="btn btn-hint" onclick="useHint()">Bantu</button>
+            <button class="btn btn-check" onclick="submitWord()">Cek</button>
+        </div>
+        <div class="chart-section">
+            <div class="chart-title">Grafik Perolehan Poin (Level 1 - 20)</div>
+            <div class="bar-chart" id="barChart"></div>
+        </div>
+    </div>
+    <script>
+        var levels = [
+            { level: 1, letters: ["A", "P", "I", "R"], words: ["API", "AIR", "PARI"] },
+            { level: 2, letters: ["K", "A", "T", "A"], words: ["KATA", "ATAK", "TAKA"] },
+            { level: 3, letters: ["B", "U", "K", "A"], words: ["BUKA", "AKU", "BAKU"] },
+            { level: 4, letters: ["M", "A", "T", "A"], words: ["MATA", "TAMA", "ATMA"] },
+            { level: 5, letters: ["S", "A", "T", "U", "P"], words: ["SATU", "SAPU", "PUAS", "USAP"] },
+            { level: 6, letters: ["R", "U", "M", "A", "H"], words: ["RUMAH", "HARUM", "MURAH", "MAU"] },
+            { level: 7, letters: ["K", "U", "R", "S", "I"], words: ["KURSI", "SUKI", "USIR", "KRU"] },
+            { level: 8, letters: ["B", "A", "T", "U", "K"], words: ["BATUK", "BATU", "BUTA", "BUAT"] },
+            { level: 9, letters: ["P", "A", "S", "I", "R"], words: ["PASIR", "SARI", "RAPI", "SIAP"] },
+            { level: 10, letters: ["L", "A", "M", "P", "U"], words: ["LAMPU", "PALU", "MALU", "LUPA"] },
+            { level: 11, letters: ["K", "E", "L", "A", "S"], words: ["KELAS", "ELAK", "LEKAS", "SAKE"] },
+            { level: 12, letters: ["T", "A", "N", "A", "H"], words: ["TANAH", "TAHAN", "HANTA", "ATAH"] },
+            { level: 13, letters: ["S", "U", "R", "A", "T"], words: ["SURAT", "RATUS", "URAT", "ARUS"] },
+            { level: 14, letters: ["P", "I", "N", "T", "U"], words: ["PINTU", "UNIT", "TIPU", "PUNTI"] },
+            { level: 15, letters: ["B", "E", "R", "A", "S"], words: ["BERAS", "BESAR", "SERAB", "REBA"] },
+            { level: 16, letters: ["K", "A", "P", "A", "L"], words: ["KAPAL", "LAPAK", "KALAP", "APAL"] },
+            { level: 17, letters: ["M", "E", "R", "A", "H"], words: ["MERAH", "REMAH", "HAREM", "RAME"] },
+            { level: 18, letters: ["S", "E", "K", "O", "L", "A", "H"], words: ["SEKOLAH", "ELOK", "KOLA", "OLAH"] },
+            { level: 19, letters: ["B", "I", "N", "T", "A", "N", "G"], words: ["BINTANG", "TIGA", "NAGA", "BINA"] },
+            { level: 20, letters: ["M", "A", "T", "A", "H", "A", "R", "I"], words: ["MATAHARI", "HARI", "MATA", "RAMA"] }
+        ];
+        var currentLevelIdx = 0, score = 0, levelScores = new Array(20).fill(0), foundWords = [], selectedLetters = [], poolLetters = [];
+        function initChart() {
+            var chart = document.getElementById("barChart"); chart.innerHTML = "";
+            for (var i = 0; i < 20; i++) {
+                var bar = document.createElement("div"); bar.className = "bar-col"; bar.id = "bar-" + i; chart.appendChild(bar);
+            }
+        }
+        function updateChart() {
+            for (var i = 0; i < 20; i++) {
+                var bar = document.getElementById("bar-" + i); if (!bar) continue;
+                bar.className = "bar-col";
+                if (i < currentLevelIdx) bar.classList.add("completed");
+                else if (i === currentLevelIdx) bar.classList.add("active");
+                bar.style.height = Math.min(55, Math.max(6, Math.floor(levelScores[i] / 3))) + "px";
+            }
+        }
+        function loadLevel(idx) {
+            if (idx >= levels.length) {
+                document.getElementById("targetWordsBox").innerHTML = "<h3 style='color:#10b981;'>🎉 Semua Selesai!</h3>";
+                document.getElementById("gamePlayArea").innerHTML = "<p style='text-align:center; padding:20px;'><b>Total Poin Akhir: " + score + "</b></p>";
+                document.getElementById("controlsArea").style.display = "none";
+                return;
+            }
+            currentLevelIdx = idx; foundWords = []; selectedLetters = [];
+            poolLetters = shuffleArray(levels[idx].letters.slice());
+            document.getElementById("levelIndicator").innerText = "Level " + (idx + 1) + " / 20";
+            document.getElementById("scoreDisplay").innerText = score;
+            document.getElementById("statusDisplay").innerText = "Main";
+            var pct = Math.round(((idx + 1) / levels.length) * 100);
+            document.getElementById("progressBar").style.width = pct + "%";
+            document.getElementById("progressPercent").innerText = pct + "%";
+            renderTargetWords(); renderPool(); renderSelected(); updateChart();
+        }
+        function shuffleArray(arr) {
+            for (var i = arr.length - 1; i > 0; i--) {
+                var j = Math.floor(Math.random() * (i + 1));
+                var temp = arr[i]; arr[i] = arr[j]; arr[j] = temp;
+            }
+            return arr;
+        }
+        function renderTargetWords() {
+            var box = document.getElementById("targetWordsBox"); box.innerHTML = "";
+            var targetList = levels[currentLevelIdx].words;
+            for (var i = 0; i < targetList.length; i++) {
+                var word = targetList[i], isFound = foundWords.indexOf(word) !== -1;
+                var card = document.createElement("div"); card.className = "word-card" + (isFound ? " found" : "");
+                for (var c = 0; c < word.length; c++) {
+                    var charBox = document.createElement("div"); charBox.className = "char-box";
+                    charBox.innerText = isFound ? word[c] : "?"; card.appendChild(charBox);
+                }
+                box.appendChild(card);
+            }
+            document.getElementById("wordsCountDisplay").innerText = foundWords.length + " / " + targetList.length;
+        }
+        function renderPool() {
+            var pool = document.getElementById("lettersPool"); pool.innerHTML = "";
+            for (var i = 0; i < poolLetters.length; i++) {
+                var isUsed = false;
+                for (var s = 0; s < selectedLetters.length; s++) { if (selectedLetters[s].poolIndex === i) { isUsed = true; break; } }
+                var btn = document.createElement("button"); btn.className = "letter-btn" + (isUsed ? " used" : "");
+                btn.innerText = poolLetters[i]; btn.setAttribute("data-idx", i);
+                btn.onclick = function() { selectLetter(parseInt(this.getAttribute("data-idx"), 10)); };
+                pool.appendChild(btn);
+            }
+        }
+        function renderSelected() {
+            var display = document.getElementById("currentWordDisplay"); display.innerHTML = "";
+            if (selectedLetters.length === 0) { display.innerHTML = "<span style='color:#64748b; font-size:0.85rem;'>Pilih huruf di bawah</span>"; return; }
+            for (var i = 0; i < selectedLetters.length; i++) {
+                var tile = document.createElement("div"); tile.className = "selected-letter";
+                tile.innerText = selectedLetters[i].char; tile.setAttribute("data-pos", i);
+                tile.onclick = function() { removeSelected(parseInt(this.getAttribute("data-pos"), 10)); };
+                display.appendChild(tile);
+            }
+        }
+        function selectLetter(poolIdx) { selectedLetters.push({ char: poolLetters[poolIdx], poolIndex: poolIdx }); renderPool(); renderSelected(); }
+        function removeSelected(pos) { selectedLetters.splice(pos, 1); renderPool(); renderSelected(); }
+        function clearSelection() { selectedLetters = []; renderPool(); renderSelected(); }
+        function shufflePool() { selectedLetters = []; poolLetters = shuffleArray(poolLetters); renderPool(); renderSelected(); }
+        function useHint() {
+            if (score < 15) { setStatus("Poin < 15!", "#ef4444"); return; }
+            var targetList = levels[currentLevelIdx].words;
+            for (var i = 0; i < targetList.length; i++) {
+                if (foundWords.indexOf(targetList[i]) === -1) {
+                    score -= 15; foundWords.push(targetList[i]);
+                    document.getElementById("scoreDisplay").innerText = score;
+                    setStatus("Terbuka!", "#a855f7"); renderTargetWords(); checkLevelComplete(); return;
+                }
+            }
+        }
+        function submitWord() {
+            if (selectedLetters.length === 0) return;
+            var formed = "";
+            for (var i = 0; i < selectedLetters.length; i++) formed += selectedLetters[i].char;
+            var targetList = levels[currentLevelIdx].words;
+            if (targetList.indexOf(formed) !== -1) {
+                if (foundWords.indexOf(formed) !== -1) { setStatus("Sudah Ada", "#f59e0b"); clearSelection(); }
+                else {
+                    foundWords.push(formed); var pts = formed.length * 15;
+                    score += pts; levelScores[currentLevelIdx] += pts;
+                    document.getElementById("scoreDisplay").innerText = score;
+                    setStatus("+" + pts + " Poin!", "#10b981");
+                    clearSelection(); renderTargetWords(); updateChart(); checkLevelComplete();
+                }
+            } else { setStatus("Salah!", "#ef4444"); clearSelection(); }
+        }
+        function checkLevelComplete() {
+            var targetList = levels[currentLevelIdx].words;
+            if (foundWords.length === targetList.length) {
+                score += 20; levelScores[currentLevelIdx] += 20;
+                document.getElementById("scoreDisplay").innerText = score;
+                setStatus("Naik Level!", "#38bdf8");
+                setTimeout(function() { loadLevel(currentLevelIdx + 1); }, 1100);
+            }
+        }
+        function setStatus(text, color) { var el = document.getElementById("statusDisplay"); el.innerText = text; el.style.color = color || "#38bdf8"; }
+        initChart(); loadLevel(0);
+    </script>
+</body>
+</html>
